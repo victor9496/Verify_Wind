@@ -1,0 +1,142 @@
+---
+title: "Verify Wind"
+author: "REsurety, Inc."
+date: "February 2016"
+output: html_document
+---
+
+
+## REsurety Software Development Task
+
+We have received a new cluster of wind data sources that are near Logan Wind Energy, an operating wind
+project.  Your goal is to analyze whether the new wind data can be used
+to model long-term conditions at the wind farm. Your answer should have a quantitative
+statistical answer and a visual component.
+
+Your data sources are:
+
+* `WindData.csv` - hourly wind speed, direction, and temperature back to 1979
+* `SiteData.csv` - data about Logan such as owner, location, and turbine specifications
+* `PowerCurve.csv` - relates wind speed to turbine power production and thrust
+* `SiteEnergy.csv` - shows historical energy production at Logan
+
+The following sections describe each data source in detail and describe the 
+expected deliverables. Expected time for the task is ~2 hours.
+
+## Data Source #1: Wind Time Series
+
+The file `WindData.csv` contains wind data from a meteorological site at latitude 41.0 and longitude -103.3333,
+to the North and West of Logan.  Columns in the file are:
+
+* `Time` - hourly data going back to 1979 in UTC
+* `NW_spd_w2`, `NW_spd_w10`, `NW_spd_50m` Wind speed at 2m, 10m, and 50m (m/s)
+* `NW_dir_w2`, `NW_dir_w10`, `NW_dir_50m` Wind direction at 2m, 10m, and 50m (degrees, 0 = North)
+* `NW_t2m` - Temperature at 2m
+
+
+```{r, echo=FALSE, results='hide', fig.show='hold'}
+# For the convenience of R users, we have also provided `WindData.rds` which has the same information
+# but is much faster to load.
+wind <- data.table::data.table(readRDS(file='WindData.rds'))
+wDen10 <- density(wind$NW_spd_10m,cut = 0)
+wDen02 <- density(wind$NW_spd_2m,cut = 0)
+wDen50 <- density(wind$NW_spd_50m,cut = 0)
+par(mar=c(4,4,4,4),mgp=c(2,0.5,0))
+plot(wDen10$x,wDen10$y,type='l',lwd=2,col="#0072B5",xlab='Wind Speed (m/s)',
+     ylab='Frequency',yaxt='n',main='Distribution of Wind by Height')
+lines(wDen50$x,wDen50$y,lwd=2,col='#84BE41')
+lines(wDen02$x,wDen02$y,lwd=2,col='#808080')
+legend('topright',legend=c('50m','10m','2m'),lty='solid',lwd='2',col=c('#84BE41','#0072B5','#808080'))
+```
+
+## Data Source #2: Site Characteristics
+
+The wind project we are evaluating has all its site characteristics
+saved in the file `SiteData.csv`:
+
+```{r, echo=FALSE}
+read.csv(file='SiteData.csv',stringsAsFactors=F,row.names=1)
+```
+
+
+## Data Source #3: Turbine Power Curve
+
+A wind turbine's power curve shows the idealized relationship between incoming 
+wind and the amount of power produced.  The file `PowerCurve.csv` contains columns
+ `WindSpeed.ms`, `Power.kW`, and `ThrustCoefficient` and is valid for the site's
+ GE 1.5SLE turbine.  Like most power curves, the turbine produces no power below
+ its ~3.5m/s cut-in speed then rises almost linearly to its nameplate capacity
+ of 1500 kW.  Beyond 25m/s the turbine hits its cut-out speed and produces no power.
+
+```{r, echo=FALSE, results='hide', fig.show='hold'}
+pwr  <- read.csv(file='PowerCurve.csv')
+par(mar=c(4,4,4,4))
+plot(pwr$WindSpeed.ms,pwr$Power.kW,type='l',col="#0072B5",lwd=2,xlab='Wind Speed (m/s)',ylab='Power (kW)',main='GE 1.5SLE Power Curve')
+```
+
+
+## Data Source #4: Site Energy Production
+
+The file `SiteEnergy.csv` contains public records for Logan Wind Energy's monthly
+energy production.  Columns are:
+
+* `Month` - YYYY-MM of record
+* `Energy.MWh` - Megawatt-hours of reported site production in that month
+* `Capacity.MW` - The total nameplate capacity (in MW) reported by the site
+
+```{r, echo=FALSE, fig.show='hold'}
+eObs <- read.csv(file='SiteEnergy.csv',stringsAsFactors=F)
+eObs$Year <- as.numeric(substr(eObs$Month,1,4))+(as.numeric(substr(eObs$Month,6,7))-1)/12
+par(mar=c(4,4,4,4))
+plot(eObs$Year,eObs$Energy.MWh,type='l',col="#0072B5",lwd=2,xlab='Year',
+     ylab='Monthly Energy (MWh)',main='Logan Wind Energy Site Production')
+tail(eObs)
+```
+
+
+## Hints
+
+Your workflow may resemble the following:
+
+* Transform an appropriate hourly wind speed using the power curve to get hourly energy production
+* Aggregate hourly energy production to the monthly level
+* Compare modeled monthly energy to the publicly reported observed energy
+
+## Deliverables
+
+Submit the following to `kcritz@resurety.com` as PDF or HTML files:
+
+* Your contact information
+* A 3-4 sentence answer to the question "Is the met data suitable to
+  predict energy output at the site?" This answer should have a quantitative
+  component.
+* A visualization that illustrates your point.  Charts will be evaluated
+  according to Tufte's "Visual Display of Quantitative Information"
+  <http://www.edwardtufte.com/tufte/books_vdqi>
+* The code you used to answer the question. Use any analysis environment that 
+  works for you. If you use Excel, we will laugh at you.
+* Is there anything we can do to improve this exercise?  Was anything unclear
+  or ambiguous?
+
+Expectations:
+
+* Most candidates spend no more than 2 hours on this task.  This isn't meant to be
+  an in-depth consulting project or second job.  Obviously we can't enforce
+  a time limit, but you shouldn't let this eat your time.
+* Results should reflect your work only. This is not a group project.  
+* If you have domain knowledge, don't worry about nonlinear shear, time
+  zone corrections, or wake/performance losses.  This investigation is meant
+  to be approximate and fast. 
+  No extra credit will be given if you build a terrain map and locate 
+  turbines to run a full CFD simulation of the site.
+  
+  
+
+
+
+
+
+
+
+
+
